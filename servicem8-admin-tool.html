@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ServiceM8 Admin Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section h2 {
+            color: #0066cc;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .button:hover {
+            background: #0052a3;
+        }
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        input, select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        input[type="number"] {
+            width: 100px;
+        }
+        select {
+            width: 400px;
+        }
+        .result {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            border-left: 4px solid #0066cc;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .result pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #f0fdf4;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #fef2f2;
+            color: #dc3545;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #28a745;
+            color: white;
+        }
+        .status.error {
+            background: #dc3545;
+            color: white;
+        }
+        .status.pending {
+            background: #ffc107;
+            color: black;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .loading {
+            display: inline-block;
+            margin-left: 10px;
+            color: #0066cc;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 ServiceM8 Admin Tool</h1>
+
+    <!-- Test Connection -->
+    <div class="section">
+        <h2>1. Test ServiceM8 Connection</h2>
+        <button class="button" onclick="testConnection()">Test Connection</button>
+        <div id="testResult"></div>
+    </div>
+
+    <!-- Get Companies -->
+    <div class="section">
+        <h2>2. Get ServiceM8 Companies</h2>
+        <button class="button" onclick="getCompanies()">Load Companies</button>
+        <div id="companiesResult"></div>
+    </div>
+
+    <!-- Link Customer -->
+    <div class="section">
+        <h2>3. Link Customer to ServiceM8 Company</h2>
+        <div class="form-group">
+            <label>Customer ID:</label>
+            <input type="number" id="linkCustomerId" placeholder="e.g., 1" value="1">
+        </div>
+        <div class="form-group">
+            <label>ServiceM8 Company:</label>
+            <select id="companySelect">
+                <option value="">-- Load companies first --</option>
+            </select>
+        </div>
+        <button class="button" onclick="linkCustomer()">Link Customer</button>
+        <div id="linkResult"></div>
+    </div>
+
+    <!-- Sync Jobs -->
+    <div class="section">
+        <h2>4. Sync Customer Jobs from ServiceM8</h2>
+        <div class="form-group">
+            <label>Customer ID:</label>
+            <input type="number" id="syncCustomerId" placeholder="e.g., 1" value="1">
+        </div>
+        <button class="button" onclick="syncCustomerJobs()">Sync Jobs</button>
+        <div id="syncResult"></div>
+    </div>
+
+    <!-- Sync All -->
+    <div class="section">
+        <h2>5. Sync All Customers</h2>
+        <button class="button" onclick="syncAll()">Sync All Customers</button>
+        <div id="syncAllResult"></div>
+    </div>
+
+    <!-- Customer Info -->
+    <div class="section">
+        <h2>6. Get Customer ServiceM8 Info</h2>
+        <div class="form-group">
+            <label>Customer ID:</label>
+            <input type="number" id="infoCustomerId" placeholder="e.g., 1" value="1">
+        </div>
+        <button class="button" onclick="getCustomerInfo()">Get Info</button>
+        <div id="infoResult"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let companies = [];
+
+        function showLoading(elementId) {
+            document.getElementById(elementId).innerHTML = '<span class="loading">Loading...</span>';
+        }
+
+        function showResult(elementId, data, isSuccess = true) {
+            const resultDiv = document.getElementById(elementId);
+            resultDiv.className = `result ${isSuccess ? 'success' : 'error'}`;
+            resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+
+        async function testConnection() {
+            showLoading('testResult');
+            try {
+                const response = await fetch(`${API_BASE}/servicem8/test`);
+                const data = await response.json();
+                showResult('testResult', data, data.success);
+            } catch (error) {
+                showResult('testResult', { error: error.message }, false);
+            }
+        }
+
+        async function getCompanies() {
+            showLoading('companiesResult');
+            try {
+                const response = await fetch(`${API_BASE}/servicem8/companies`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    companies = data.data;
+                    
+                    // Populate select dropdown
+                    const select = document.getElementById('companySelect');
+                    select.innerHTML = '<option value="">-- Select a company --</option>';
+                    companies.forEach(company => {
+                        const option = document.createElement('option');
+                        option.value = company.uuid;
+                        option.textContent = `${company.name} (${company.email || 'No email'})`;
+                        select.appendChild(option);
+                    });
+                }
+                
+                showResult('companiesResult', data, data.success);
+            } catch (error) {
+                showResult('companiesResult', { error: error.message }, false);
+            }
+        }
+
+        async function linkCustomer() {
+            const customerId = document.getElementById('linkCustomerId').value;
+            const companyUuid = document.getElementById('companySelect').value;
+
+            if (!customerId) {
+                alert('Please enter a customer ID');
+                return;
+            }
+            if (!companyUuid) {
+                alert('Please select a company');
+                return;
+            }
+
+            showLoading('linkResult');
+            try {
+                const response = await fetch(`${API_BASE}/servicem8/customers/${customerId}/link`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ servicem8_company_uuid: companyUuid })
+                });
+                const data = await response.json();
+                showResult('linkResult', data, data.success);
+            } catch (error) {
+                showResult('linkResult', { error: error.message }, false);
+            }
+        }
+
+        async function syncCustomerJobs() {
+            const customerId = document.getElementById('syncCustomerId').value;
+
+            if (!customerId) {
+                alert('Please enter a customer ID');
+                return;
+            }
+
+            showLoading('syncResult');
+            try {
+                const response = await fetch(`${API_BASE}/servicem8/customers/${customerId}/sync`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                showResult('syncResult', data, data.success);
+            } catch (error) {
+                showResult('syncResult', { error: error.message }, false);
+            }
+        }
+
+        async function syncAll() {
+            if (!confirm('This will sync all customers linked to ServiceM8. Continue?')) {
+                return;
+            }
+
+            showLoading('syncAllResult');
+            try {
+                const response = await fetch(`${API_BASE}/servicem8/sync-all`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                showResult('syncAllResult', data, data.success);
+            } catch (error) {
+                showResult('syncAllResult', { error: error.message }, false);
+            }
+        }
+
+        async function getCustomerInfo() {
+            const customerId = document.getElementById('infoCustomerId').value;
+
+            if (!customerId) {
+                alert('Please enter a customer ID');
+                return;
+            }
+
+            showLoading('infoResult');
+            try {
+                const response = await fetch(`${API_BASE}/servicem8/customers/${customerId}/info`);
+                const data = await response.json();
+                showResult('infoResult', data, data.success);
+            } catch (error) {
+                showResult('infoResult', { error: error.message }, false);
+            }
+        }
+
+        // Auto-test connection on load
+        window.addEventListener('load', () => {
+            testConnection();
+        });
+    </script>
+</body>
+</html>
