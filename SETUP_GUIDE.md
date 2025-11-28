@@ -1,12 +1,13 @@
-# Customer Portal - Complete Setup Guide
+# Customer Portal - Setup Guide
 
-A full-stack Customer Portal with Next.js, Express.js, MySQL, and ServiceM8 API integration.
+Step-by-step instructions to set up and run the Customer Portal application.
 
 ## Prerequisites
 
-1. **XAMPP** installed with MySQL running
-2. **Node.js** 18+ installed
-3. **ServiceM8 API credentials** (username and password)
+1. **XAMPP** - For MySQL database
+2. **Node.js** 18+ - Runtime environment
+3. **Code Editor** - VS Code recommended
+4. **ServiceM8 Account** (optional) - For ServiceM8 integration
 
 ## Database Setup
 
@@ -48,9 +49,8 @@ npm install
    # JWT Secret (change in production!)
    JWT_SECRET=your-super-secret-jwt-key-change-this
 
-   # ServiceM8 API Credentials
-   SERVICEM8_USERNAME=your-servicem8-username
-   SERVICEM8_PASSWORD=your-servicem8-password
+   # ServiceM8 API Key (optional)
+   SERVICEM8_API_KEY=your-servicem8-api-key-here
    ```
 
 ### Step 4: Start Backend Server
@@ -133,71 +133,70 @@ VALUES
 ✅ **View Attachments**: See and download file attachments
 ✅ **Send Messages**: Send messages related to a booking
 
-## API Endpoints
+## Application URLs
 
-### Authentication
-- `POST /api/auth/register` - Register new customer
-- `POST /api/auth/login` - Login with email, phone, and password
-- `GET /api/auth/profile` - Get customer profile (protected)
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:5000
+- **Database Admin**: http://localhost/phpmyadmin
+- **ServiceM8 Admin Tool**: Open `servicem8-admin-tool.html` in browser
 
-### Bookings
-- `GET /api/bookings` - Get all bookings for logged-in customer
-- `GET /api/bookings/:id` - Get single booking with attachments and messages
-- `POST /api/bookings` - Create new booking
+## ServiceM8 Integration (Optional)
 
-### Messages
-- `GET /api/messages/:bookingId` - Get messages for a booking
-- `POST /api/messages/:bookingId` - Send a message
+### Getting Your ServiceM8 API Key
 
-### Files
-- `GET /api/files/:bookingId` - Get file attachments for a booking
+If you want to test ServiceM8 integration, you need your own API key:
 
-## ServiceM8 Integration
+1. **Sign up for ServiceM8**: https://www.servicem8.com/
+   - Create a free trial account or use existing account
 
-The POC integrates with ServiceM8 API in:
+2. **Navigate to API Settings**:
+   - Log into your ServiceM8 account at https://go.servicem8.com/
+   - Go to **Settings** → **API & Add-ons**
+   - Click on **API Keys** tab
 
-1. **Booking Controller** (`backend/src/controllers/booking.controller.ts`):
-   - Fetches jobs from ServiceM8 when viewing bookings
-   - Syncs job details and attachments
-   - Uses `servicem8_job_uuid` to link local bookings with ServiceM8 jobs
+3. **Generate API Key**:
+   - Click **"Create New API Key"**
+   - Give it a descriptive name (e.g., "Customer Portal")
+   - Select appropriate permissions (read access needed)
+   - **Copy the generated API key** (starts with `sk_` or similar)
 
-2. **Configuration** (`backend/src/config/servicem8.ts`):
-   - API client with Basic Auth
-   - Methods for getting jobs, attachments, and company details
+4. **Add to Environment Variables**:
+   ```env
+   SERVICEM8_API_KEY=your-actual-api-key-here
+   ```
 
-To test ServiceM8 integration:
-1. Add your ServiceM8 credentials to `.env`
-2. Create a booking with a valid `servicem8_job_uuid`
-3. View the booking - it will fetch live data from ServiceM8
+⚠️ **Important**: Keep your API key private and never commit it to version control!
 
-## Database Schema
+### Testing ServiceM8 Integration
 
-### Customers
-- id, email, phone, password (hashed), name, servicem8_company_uuid
+The app integrates with ServiceM8 API in:
 
-### Bookings
-- id, customerId, servicem8_job_uuid, title, description, status, scheduledDate, completedDate, address, total
+1. **Auto-Sync**: When customers view bookings, jobs automatically sync from ServiceM8
+2. **Admin Tools**: Use `servicem8-admin-tool.html` for:
+   - Testing API connection
+   - Linking customers to ServiceM8 companies
+   - Syncing jobs and attachments
 
-### File Attachments
-- id, bookingId, servicem8_attachment_uuid, fileName, fileUrl, fileType, fileSize
+3. **ServiceM8 Features**:
+   - Jobs sync with status mapping
+   - Attachments download from ServiceM8
+   - Visual badges show ServiceM8-synced bookings
 
-### Messages
-- id, bookingId, customerId, content, senderType (customer/admin), isRead
+### Without ServiceM8 Account
 
-## Tech Stack
+The app works perfectly without ServiceM8:
+- All core features functional (login, bookings, messages, files)
+- Use local bookings and data only
+- Skip ServiceM8 configuration entirely
 
-### Backend
-- Express.js with TypeScript
-- MySQL with Sequelize ORM
-- JWT authentication
-- bcryptjs for password hashing
-- ServiceM8 API integration
+## First Time Setup Summary
 
-### Frontend
-- Next.js 15 with App Router
-- TypeScript
-- Axios for API calls
-- CSS Modules
+1. **Install Prerequisites** (XAMPP, Node.js)
+2. **Create Database** (`customer_portal`)
+3. **Setup Backend** (install deps, configure .env, start server)
+4. **Setup Frontend** (install deps, configure .env.local, start app)
+5. **Test Application** (register, login, create bookings)
+6. **Optional**: Configure ServiceM8 integration
 
 ## Production Checklist
 
@@ -219,8 +218,9 @@ To test ServiceM8 integration:
 - Verify database `customer_portal` exists
 
 **ServiceM8 API Error:**
-- Verify credentials are correct
-- Check API endpoint is accessible
+- Verify API key is correct in `.env`
+- Check if ServiceM8 account is active
+- Test connection using `servicem8-admin-tool.html`
 - Review ServiceM8 API documentation
 
 **Frontend Can't Connect:**
